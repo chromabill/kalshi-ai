@@ -40,8 +40,24 @@ async def process_and_queue_markets(
             no_price = (no_bid + no_ask) / 2
         else:
             # Legacy API: values in cents (0-100)
-            yes_price = (market_data.get("yes_bid", 0) + market_data.get("yes_ask", 0)) / 2 / 100
-            no_price = (market_data.get("no_bid", 0) + market_data.get("no_ask", 0)) / 2 / 100
+            yes_ask = market_data.get("yes_ask", 0) / 100
+            no_ask = market_data.get("no_ask", 0) / 100
+            yes_price = (market_data.get("yes_bid", 0) / 100 + yes_ask) / 2
+            no_price = (market_data.get("no_bid", 0) / 100 + no_ask) / 2
+
+        # Skip collection/aggregate tickers: both yes_ask and no_ask near $1.00
+        # (e.g. KXMVECROSSCATEGORY-*, KXMVESPORTSMULTIGAMEEXTENDED-*).
+        # The Kalshi API returns yes_ask=1.0000 and no_ask=1.0000 for these
+        # multi-event container markets — they are NOT real binary markets and
+        # cannot be traded.
+        _COLLECTION_THRESHOLD = 0.98
+        if yes_ask >= _COLLECTION_THRESHOLD and no_ask >= _COLLECTION_THRESHOLD:
+            logger.warning(
+                f"Skipping collection/aggregate market {market_data['ticker']}: "
+                f"yes_ask={yes_ask:.4f}, no_ask={no_ask:.4f} "
+                f"(both >= {_COLLECTION_THRESHOLD}, not a tradeable binary market)"
+            )
+            continue
 
         # Kalshi API v2 uses volume_fp (string/float) instead of volume (int)
         volume = int(float(market_data.get("volume_fp", 0) or market_data.get("volume", 0) or 0))

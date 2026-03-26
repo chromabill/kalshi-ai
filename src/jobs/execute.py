@@ -64,18 +64,24 @@ async def execute_position(
             _yes_bid, yes_ask_dollars, _no_bid, no_ask_dollars = get_market_prices(market)
             if side_lower == "yes":
                 yes_ask_cents = int(round(yes_ask_dollars * 100))
-                if yes_ask_cents > 0:
-                    order_params["yes_price"] = yes_ask_cents
-                else:
-                    logger.error(f"No valid yes_ask price for {position.market_id}: {yes_ask_dollars}")
+                if not (1 <= yes_ask_cents <= 99):
+                    logger.warning(
+                        f"Price sanity check failed for {position.market_id}: "
+                        f"yes_ask_cents={yes_ask_cents} is outside valid range 1–99 "
+                        f"(raw yes_ask_dollars={yes_ask_dollars:.4f}). Skipping order."
+                    )
                     return False
+                order_params["yes_price"] = yes_ask_cents
             else:  # side_lower == "no"
                 no_ask_cents = int(round(no_ask_dollars * 100))
-                if no_ask_cents > 0:
-                    order_params["no_price"] = no_ask_cents
-                else:
-                    logger.error(f"No valid no_ask price for {position.market_id}: {no_ask_dollars}")
+                if not (1 <= no_ask_cents <= 99):
+                    logger.warning(
+                        f"Price sanity check failed for {position.market_id}: "
+                        f"no_ask_cents={no_ask_cents} is outside valid range 1–99 "
+                        f"(raw no_ask_dollars={no_ask_dollars:.4f}). Skipping order."
+                    )
                     return False
+                order_params["no_price"] = no_ask_cents
             
             logger.info(f"Placing order with params: {order_params}")
             order_response = await kalshi_client.place_order(**order_params)
