@@ -13,6 +13,7 @@ from src.clients.kalshi_client import KalshiClient
 from src.utils.database import DatabaseManager, Market
 from src.config.settings import settings
 from src.utils.logging_setup import get_trading_logger
+from src.utils.market_prices import is_tradeable_market
 
 
 async def process_and_queue_markets(
@@ -47,6 +48,13 @@ async def process_and_queue_markets(
         volume = int(float(market_data.get("volume_fp", 0) or market_data.get("volume", 0) or 0))
 
         has_position = market_data["ticker"] in existing_position_market_ids
+
+        # Skip collection/series tickers — these return $1.00/$1.00 for both
+        # sides and are not directly tradeable (see GitHub issue #42).
+        # Centralised in is_tradeable_market() so execute.py can reuse the same guard.
+        if not is_tradeable_market(market_data):
+            logger.debug(f"Skipping collection ticker {market_data['ticker']} (YES_ask={yes_ask}, NO_ask={no_ask})")
+            continue
 
         market = Market(
             market_id=market_data["ticker"],

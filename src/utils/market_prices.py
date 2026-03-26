@@ -6,9 +6,39 @@ Kalshi API v2 changed price fields from cent-based integers
 (yes_ask_dollars, yes_bid_dollars, no_ask_dollars, no_bid_dollars).
 
 This module provides a single helper that normalizes both formats
-to dollar values (0.0–1.0).
+to dollar values (0.0–1.0), plus a guard for non-tradeable
+collection/aggregate tickers (issue #42).
 """
 from typing import Dict, Any, Tuple
+
+# Threshold above which both sides signal a collection/aggregate ticker
+# that is not directly tradeable on Kalshi (e.g. KXMVECROSSCATEGORY-*).
+_COLLECTION_TICKER_THRESHOLD = 0.99
+
+
+def is_tradeable_market(market_info: Dict[str, Any]) -> bool:
+    """
+    Return False if this market looks like a collection/aggregate ticker.
+
+    Collection tickers (e.g. KXMVECROSSCATEGORY-*, KXMVESPORTSMULTIGAMEEXTENDED-*)
+    are not directly tradeable.  The Kalshi API returns yes_ask == no_ask == $1.00
+    for these markets.  Attempting to place an order against them results in an
+    HTTP 400 ``invalid_price`` error.
+
+    A market is considered non-tradeable when BOTH ask prices are at or above
+    the collection-ticker threshold (``>= 0.99``).
+
+    Args:
+        market_info: Raw market dict from the Kalshi API.
+
+    Returns:
+        True  – market is tradeable.
+        False – market is a collection/aggregate ticker; skip it.
+    """
+    _, yes_ask, _, no_ask = get_market_prices(market_info)
+    if yes_ask >= _COLLECTION_TICKER_THRESHOLD and no_ask >= _COLLECTION_TICKER_THRESHOLD:
+        return False
+    return True
 
 
 def get_market_prices(market_info: Dict[str, Any]) -> Tuple[float, float, float, float]:

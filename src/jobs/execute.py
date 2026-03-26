@@ -12,7 +12,7 @@ from src.utils.database import DatabaseManager, Position
 from src.config.settings import settings
 from src.utils.logging_setup import get_trading_logger
 from src.clients.kalshi_client import KalshiClient, KalshiAPIError
-from src.utils.market_prices import get_market_prices
+from src.utils.market_prices import get_market_prices, is_tradeable_market
 
 async def execute_position(
     position: Position, 
@@ -62,6 +62,32 @@ async def execute_position(
             # get_market_prices normalizes both API v2 (dollar floats) and legacy (cent ints)
             # to dollar values (0.0–1.0). place_order expects cents (int), so multiply by 100.
             _yes_bid, yes_ask_dollars, _no_bid, no_ask_dollars = get_market_prices(market)
+
+            # --- Price sanity checks (issue #42) ---
+            # Guard 1: Collection/aggregate tickers return $1.00/$1.00 and are not
+            # directly tradeable.  Placing an order against them yields HTTP 400
+            # invalid_price.  Reject early if both asks are at or above $0.99.
+            if not is_tradeable_market(market):
+                logger.warning(
+                    f"⚠️  Skipping {position.market_id}: collection/aggregate ticker "
+                    f"(yes_ask={yes_ask_dollars:.4f}, no_ask={no_ask_dollars:.4f}). "
+                    "Both asks >= $0.99 — market is not directly tradeable (issue #42)."
+                )
+                return False
+
+            # Guard 2: Reject any price that would convert to 0¢ or >= 100¢ — these
+            # are outside the valid Kalshi order range and will be rejected by the API.
+            ask_dollars = yes_ask_dollars if side_lower == "yes" else no_ask_dollars
+            ask_cents = int(round(ask_dollars * 100))
+            if ask_cents <= 0 or ask_cents >= 100:
+                logger.warning(
+                    f"⚠️  Skipping {position.market_id}: {side_lower} ask price "
+                    f"{ask_dollars:.4f} converts to {ask_cents}¢ which is outside the "
+                    "valid Kalshi range (1–99¢). Cannot place order (issue #42)."
+                )
+                return False
+            # --- End price sanity checks ---
+
             if side_lower == "yes":
                 yes_ask_cents = int(round(yes_ask_dollars * 100))
                 if yes_ask_cents > 0:
