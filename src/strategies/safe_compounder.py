@@ -59,7 +59,7 @@ SKIP_TITLE_PHRASES = [
 # Thresholds (all in dollar format 0.00-1.00)
 MIN_VOLUME = 10
 MIN_NO_ASK = 0.80      # Lowest NO ask must be > $0.80
-MIN_EDGE = 0.05        # Edge (EV - price) must be > $0.05
+MIN_EDGE = 0.03        # Edge (EV - price) must be > $0.03 (loosened from $0.05, approved 2026-03-29)
 MAX_POSITION_PCT = 0.10    # Max 10% of portfolio per position
 USE_KELLY = True
 MIN_CONFIDENCE = 0.4

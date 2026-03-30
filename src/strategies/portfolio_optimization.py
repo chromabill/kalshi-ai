@@ -1151,6 +1151,12 @@ async def _evaluate_immediate_trade(
             if not (yes_ask and no_ask and yes_ask > 0 and no_ask > 0):
                 logger.warning(f"⏭️ Skipping {opportunity.market_id} - No valid prices (YES={yes_ask:.4f}, NO={no_ask:.4f})")
                 return
+
+            # Skip collection/series tickers — both sides at $1.00 means it's not
+            # a directly tradeable market (see GitHub issue #42)
+            if yes_ask >= 0.99 and no_ask >= 0.99:
+                logger.warning(f"⏭️ Skipping {opportunity.market_id} - Collection/series ticker (YES={yes_ask:.4f}, NO={no_ask:.4f})")
+                return
                 
             logger.info(f"✅ Market validation passed for {opportunity.market_id} - Status: {market_status}, proceeding with trade!")
             

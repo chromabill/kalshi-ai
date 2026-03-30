@@ -79,7 +79,7 @@ class TradingConfig:
     max_time_to_expiry_days: int = 14   # SANE: Shorter timeframes (was 30)
     
     # AI decision making — DATA-DRIVEN THRESHOLDS  
-    min_confidence_to_trade: float = 0.60   # OPTIMIZED: 60% confidence minimum (reduced from 65% due to zero-trade issue)
+    min_confidence_to_trade: float = 0.45   # LOOSENED: 45% confidence minimum (was 60%, approved 2026-03-29)
                                            # Based on analysis: 65% was too conservative, bot finding 0 eligible markets
                                            # NCAAB NO-side showed 74% WR at +10% ROI, suggesting value at lower thresholds
     

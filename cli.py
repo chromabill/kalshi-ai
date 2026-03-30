@@ -72,7 +72,7 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     # Apply disciplined settings overrides
     from src.config import settings as cfg
-    cfg.settings.trading.min_confidence_to_trade = 0.65
+    cfg.settings.trading.min_confidence_to_trade = 0.45  # LOOSENED from 0.65 (approved 2026-03-29)
     cfg.settings.trading.max_position_size_pct = 3.0
     cfg.settings.trading.kelly_fraction = 0.25
     cfg.max_drawdown = 0.15
