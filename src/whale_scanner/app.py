@@ -288,8 +288,8 @@ async def get_history():
         from src.clients.kalshi_client import KalshiClient
         from collections import defaultdict
         client = KalshiClient(
-            api_key="5ed556bd-2c97-46f4-bf57-e3e8891ffdb4",
-            private_key_path="kalshi_private_key.pem",
+            api_key=os.environ.get("KALSHI_API_KEY", ""),
+            private_key_path=os.environ.get("KALSHI_PRIVATE_KEY_PATH", "kalshi_private_key.pem"),
         )
         fills_data = await client._make_authenticated_request(
             "GET", "/trade-api/v2/portfolio/fills", params={"limit": 100}
@@ -405,8 +405,8 @@ async def get_portfolio():
     try:
         from src.clients.kalshi_client import KalshiClient
         client = KalshiClient(
-            api_key="5ed556bd-2c97-46f4-bf57-e3e8891ffdb4",
-            private_key_path="kalshi_private_key.pem",
+            api_key=os.environ.get("KALSHI_API_KEY", ""),
+            private_key_path=os.environ.get("KALSHI_PRIVATE_KEY_PATH", "kalshi_private_key.pem"),
         )
         balance_data = await client.get_balance()
         positions_data = await client.get_positions()
