@@ -180,48 +180,17 @@ async def _poll_loop():
         await asyncio.sleep(POLL_INTERVAL)
 
 
-async def _auto_manager_loop():
-    """Background task that checks positions every 15s for auto-sell triggers."""
-    await auto_mgr.start()
-    while True:
-        try:
-            await auto_mgr.check_positions()
-        except Exception as e:
-            print(f"[auto-manager] error: {e}")
-        await asyncio.sleep(15)
-
-
 async def _scanner_loop():
-    """Background task that scans live games every 15s."""
+    """Background task that scans live games every 15s. READ-ONLY — no trading."""
     await scanner.start()
     await swing.start()
-    await swing_trader.start()
-
-    # LAL @ OKC — already bought, just watch for sells now
-    # No more auto-buying — manual buys only
-
     while True:
         try:
             await scanner.scan()
             await swing.scan()
-            await swing_trader.check()
         except Exception as e:
             print(f"[scanner] error: {e}")
         await asyncio.sleep(15)
-
-
-async def _follower_loop():
-    """Background task that runs the whale follower strategy."""
-    await follower.start()
-    while True:
-        try:
-            signals = await follower.scan_for_signals()
-            for signal in signals:
-                await follower.maybe_trade(signal)
-            await follower._check_settled_positions()
-        except Exception as e:
-            print(f"[whale-follower] error: {e}")
-        await asyncio.sleep(follower.config.scan_interval_seconds)
 
 
 @asynccontextmanager
@@ -229,16 +198,9 @@ async def lifespan(app: FastAPI):
     await store.start()
     poll_task = asyncio.create_task(_poll_loop())
     scanner_task = asyncio.create_task(_scanner_loop())
-    auto_task = asyncio.create_task(_auto_manager_loop())
-    follower_task = asyncio.create_task(_follower_loop())
     yield
     poll_task.cancel()
     scanner_task.cancel()
-    auto_task.cancel()
-    follower_task.cancel()
-    await follower.stop()
-    await auto_mgr.stop()
-    await swing_trader.stop()
     await swing.stop()
     await scanner.stop()
     await store.stop()
