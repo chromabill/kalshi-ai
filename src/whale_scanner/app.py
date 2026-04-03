@@ -197,16 +197,8 @@ async def _scanner_loop():
     await swing.start()
     await swing_trader.start()
 
-    # Set up LAL @ OKC swing trade
-    swing_trader.watch_game(GameWatch(
-        away_abbr="LAL", home_abbr="OKC",
-        away_team="Lakers", home_team="Thunder",
-        date_str="26APR02",
-        max_budget=10.0,
-        max_entry_price=0.28,  # Lakers pre-game at ~$0.24
-        profit_target_pct=0.40,  # sell at +40% (~$0.34)
-        max_swings=2,
-    ))
+    # LAL @ OKC — already bought, just watch for sells now
+    # No more auto-buying — manual buys only
 
     while True:
         try:
