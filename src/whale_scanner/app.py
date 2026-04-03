@@ -6,9 +6,24 @@ Serves a retro terminal dashboard showing whale flow, signals, and P&L.
 """
 
 import asyncio
+import base64
 import os
 import time
 from contextlib import asynccontextmanager
+
+
+def _ensure_private_key():
+    """Write private key from env var to file if running on Railway."""
+    key_b64 = os.environ.get("KALSHI_PRIVATE_KEY_B64", "")
+    if key_b64:
+        path = "/tmp/kalshi_private_key.pem"
+        with open(path, "w") as f:
+            f.write(base64.b64decode(key_b64).decode())
+        os.chmod(path, 0o600)
+        os.environ.setdefault("KALSHI_PRIVATE_KEY_PATH", path)
+
+
+_ensure_private_key()
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
