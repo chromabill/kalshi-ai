@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalshi Live Scanner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a; color: #d4d4d4;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    min-height: 100vh;
+  }
+  body::after {
+    content: ''; position: fixed; top:0;left:0;right:0;bottom:0;
+    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
+    pointer-events: none; z-index: 100;
+  }
+  .app { max-width: 1100px; margin: 0 auto; padding: 12px 16px; }
+
+  .header {
+    background: linear-gradient(90deg, #00ccff, #0088ff, #0055dd);
+    color: #fff; text-align: center; padding: 10px;
+    font-weight: 700; font-size: 18px; letter-spacing: 2px;
+    border-radius: 6px 6px 0 0;
+  }
+
+  /* Portfolio bar */
+  .portfolio-bar {
+    display: flex; gap: 8px; padding: 10px 12px;
+    background: #0d0d1a; border: 1px solid #222; border-top: none;
+    flex-wrap: wrap;
+  }
+  .p-stat {
+    background: #111122; border: 1px solid #2a2a3a; border-radius: 6px;
+    padding: 8px 14px; text-align: center; flex: 1; min-width: 100px;
+  }
+  .p-stat .val { font-size: 18px; font-weight: 700; }
+  .p-stat .lbl { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .green { color: #4cff4c; } .red { color: #ff4c4c; }
+  .gold { color: #ffd700; } .blue { color: #6cb4ff; } .pink { color: #ff66ff; }
+
+  /* My position */
+  .my-position {
+    background: #111125; border: 1px solid #222; border-top: none;
+    padding: 10px 14px;
+  }
+  .my-position .pos-header { color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+
+  /* Tabs */
+  .tabs { display: flex; background: #111; border: 1px solid #222; border-top: none; }
+  .tab {
+    flex: 1; padding: 10px; text-align: center; cursor: pointer;
+    color: #555; font-weight: 700; font-size: 12px; letter-spacing: 1px;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .tab:hover { color: #aaa; background: #1a1a2a; }
+  .tab.active { color: #00ccff; border-bottom-color: #00ccff; background: #0a1525; }
+
+  /* Panel */
+  .panel { background:#0d0d1a; border:1px solid #222; border-top:none; min-height:300px; border-radius:0 0 6px 6px; }
+  .panel-content { display:none; } .panel-content.active { display:block; }
+
+  /* Game card */
+  .game-card {
+    padding: 12px 14px; border-bottom: 1px solid #1a1a2a;
+    transition: background 0.15s;
+  }
+  .game-card:hover { background: rgba(255,255,255,0.02); }
+  .game-card.has-alert { border-left: 3px solid; }
+  .game-card.alert-hot { border-left-color: #ff4c4c; background: rgba(255,76,76,0.04); }
+  .game-card.alert-warm { border-left-color: #ffd700; background: rgba(255,215,0,0.03); }
+
+  .game-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .game-score { font-size: 16px; font-weight: 700; }
+  .game-score .away { color: #ccc; }
+  .game-score .home { color: #ccc; }
+  .game-score .at { color: #444; font-size: 12px; margin: 0 6px; }
+  .game-score .leading { color: #4cff4c; }
+  .game-clock { color: #888; font-size: 11px; }
+  .game-sport { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 700; }
+  .sport-nba { background: #1a2540; color: #4488ff; }
+  .sport-nhl { background: #1a3020; color: #44cc66; }
+
+  .game-mid { display: flex; gap: 16px; font-size: 11px; color: #666; margin-bottom: 4px; }
+  .game-prices { display: flex; gap: 6px; }
+  .price-tag { padding: 1px 6px; border-radius: 3px; font-weight: 700; }
+  .price-tag.fav { background: #1a3520; color: #4cff4c; }
+  .price-tag.dog { background: #1a1a30; color: #6cb4ff; }
+
+  .game-whale { font-size: 10px; color: #555; }
+  .whale-bar { display: inline-block; height: 4px; border-radius: 2px; margin-left: 4px; vertical-align: middle; }
+  .whale-bar.yes { background: #4cff4c; } .whale-bar.no { background: #ff4c4c; }
+
+  .game-alert {
+    margin-top: 6px; padding: 4px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 700;
+  }
+  .game-alert.hot { background: #3a1515; color: #ff6b6b; }
+  .game-alert.warm { background: #2a2515; color: #ffd700; }
+
+  /* Whale feed (kept simpler) */
+  .trade-row { display:flex; align-items:center; padding:4px 14px; gap:10px; }
+  .trade-row:hover { background:rgba(255,255,255,0.03); }
+  .trade-row + .trade-row { border-top: 1px solid #111; }
+  .rank { color:#555; width:24px; text-align:right; flex-shrink:0; font-size:11px; }
+  .side-badge { width:30px; text-align:center; padding:2px 0; border-radius:3px; font-weight:700; font-size:10px; flex-shrink:0; }
+  .side-badge.yes { background:#1a4d1a; color:#4cff4c; }
+  .side-badge.no { background:#4d1a1a; color:#ff4c4c; }
+  .amount { color:#ffd700; font-weight:700; width:75px; text-align:right; flex-shrink:0; font-size:12px; }
+  .market-title { color:#6cb4ff; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; font-size:12px; }
+
+  /* Footer */
+  .footer {
+    background:#0d0d1a; border:1px solid #222; margin-top:8px; padding:8px 14px;
+    border-radius:6px; display:flex; justify-content:space-between; font-size:11px; color:#444;
+  }
+  .dot { display:inline-block; width:6px;height:6px; border-radius:50%; background:#4cff4c; margin-right:4px; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .empty { text-align:center; padding:30px; color:#444; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">KALSHI LIVE SCANNER</div>
+
+  <!-- Portfolio bar -->
+  <div class="portfolio-bar">
+    <div class="p-stat"><div class="val gold" id="pVal">--</div><div class="lbl">Portfolio</div></div>
+    <div class="p-stat"><div class="val" id="pPnl">--</div><div class="lbl">All-Time P&L</div></div>
+    <div class="p-stat"><div class="val blue" id="pCash">--</div><div class="lbl">Cash</div></div>
+    <div class="p-stat"><div class="val pink" id="pAlerts">0</div><div class="lbl">Swing Alerts</div></div>
+    <div class="p-stat"><div class="val" id="pLive">0</div><div class="lbl">Live Games</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="swings">SWING TRADES</div>
+    <div class="tab" data-tab="games">LIVE GAMES</div>
+    <div class="tab" data-tab="positions">MY POSITIONS</div>
+    <div class="tab" data-tab="history">HISTORY</div>
+  </div>
+
+  <!-- Panels -->
+  <div class="panel">
+    <!-- SWING TRADES -->
+    <div class="panel-content active" id="tab-swings">
+      <div id="swingList"><div class="empty">Scanning for NBA swing opportunities...</div></div>
+    </div>
+
+    <div class="panel-content" id="tab-games">
+      <div class="empty" id="gamesEmpty">Loading live games...</div>
+      <div id="gamesList"></div>
+    </div>
+
+    <div class="panel-content" id="tab-positions">
+      <div id="positionsList"><div class="empty">Loading positions...</div></div>
+    </div>
+    <div class="panel-content" id="tab-history">
+      <div id="historyStats" style="padding:10px 14px;border-bottom:1px solid #333;display:flex;gap:20px"></div>
+      <div id="historyList"><div class="empty">Loading history...</div></div>
+    </div>
+    <div class="panel-content" id="tab-whales">
+      <div id="whaleList"><div class="empty">Loading whale feed...</div></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span><span class="dot"></span><span id="statusText">Connecting...</span></span>
+    <span id="lastUpdate"></span>
+  </div>
+</div>
+
+<script>
+const POLL_MS = 10_000;
+let prevWhaleIds = new Set();
+let liveGames = [];  // cached for cross-tab lookups
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+function fmt(n) { return n.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+function fmtPnl(n) { return (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2); }
+
+// Render swing opportunities
+function renderSwings(data) {
+  const list = document.getElementById('swingList');
+  const opps = data.opportunities || [];
+
+  if (opps.length === 0) {
+    list.innerHTML = '<div class="empty">No swing opportunities right now.<br><span style="font-size:11px;color:#333">Waiting for live NBA games between strong teams...</span></div>';
+    return;
+  }
+
+  let html = '';
+  opps.forEach(o => {
+    const qualClass = o.quality === 'great' ? 'alert-hot has-alert' :
+                      o.quality === 'good' ? 'alert-warm has-alert' : '';
+    const qualBadge = o.quality === 'great' ? '<span style="background:#3a1515;color:#ff6b6b;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700">BUY</span>' :
+                      o.quality === 'good' ? '<span style="background:#2a2515;color:#ffd700;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700">GOOD</span>' :
+                      o.quality === 'upcoming' ? '<span style="background:#152030;color:#6cb4ff;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700">UPCOMING</span>' :
+                      '<span style="background:#1a1a30;color:#666;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700">WATCH</span>';
+    const isUpcoming = o.quality === 'upcoming' || (o.away_score === 0 && o.home_score === 0);
+
+    const awayLd = o.away_score > o.home_score ? 'leading' : '';
+    const homeLd = o.home_score > o.away_score ? 'leading' : '';
+
+    const statusColor = isUpcoming ? '#6cb4ff' : '#4cff4c';
+    const statusText = isUpcoming ? o.clock + ' UTC' : `Q${o.period} ${o.clock}`;
+
+    html += `<div class="game-card ${qualClass}">
+      <div style="padding:10px;background:#08081a;border-radius:6px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="color:#555;font-size:10px;letter-spacing:1px">NBA</span>
+          <span style="color:${statusColor};font-size:11px;font-weight:700">${isUpcoming ? 'STARTING SOON' : statusText}</span>
+        </div>
+        <div style="display:flex;justify-content:center;align-items:center;gap:20px">
+          <div style="text-align:center">
+            ${isUpcoming ? '' : `<div class="${awayLd}" style="font-size:28px;font-weight:700">${o.away_score}</div>`}
+            <div style="color:#ccc;font-size:${isUpcoming ? '14px' : '11px'};font-weight:${isUpcoming ? '700' : '400'}">${o.away_team}</div>
+            <div style="color:#555;font-size:10px">${o.away_record}</div>
+          </div>
+          <div style="color:#333;font-size:${isUpcoming ? '14px' : '18px'};font-weight:700">${isUpcoming ? 'vs' : '—'}</div>
+          <div style="text-align:center">
+            ${isUpcoming ? '' : `<div class="${homeLd}" style="font-size:28px;font-weight:700">${o.home_score}</div>`}
+            <div style="color:#ccc;font-size:${isUpcoming ? '14px' : '11px'};font-weight:${isUpcoming ? '700' : '400'}">${o.home_team}</div>
+            <div style="color:#555;font-size:10px">${o.home_record}</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 10px;background:#0a0a15;border-radius:4px">
+        <div>
+          ${qualBadge}
+          <span style="color:#ccc;margin-left:8px;font-weight:700">${o.underdog_team}</span>
+          <span style="color:#888;margin-left:4px">down ${o.score_diff}</span>
+        </div>
+        <div style="text-align:right">
+          <span style="color:#4cff4c;font-weight:700;font-size:15px">$${o.underdog_price.toFixed(2)}</span>
+          <span style="color:#555;font-size:10px;margin-left:4px">+${o.potential_profit_pct}% if swings to 50c</span>
+        </div>
+      </div>
+      <div style="color:#555;font-size:10px;margin-top:4px">${o.reason}</div>
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+
+// Render live games
+function renderGames(data) {
+  const games = data.games || [];
+  const list = document.getElementById('gamesList');
+  const empty = document.getElementById('gamesEmpty');
+
+  liveGames = games;
+  document.getElementById('pAlerts').textContent = data.alerts || 0;
+  document.getElementById('pLive').textContent = data.live_count || 0;
+
+  if (games.length === 0) { empty.textContent = 'No games right now'; return; }
+  empty.style.display = 'none';
+
+  let html = '';
+  games.forEach(g => {
+    const isLive = ['In Progress', 'End of Period', 'Halftime'].includes(g.status);
+    const alertClass = g.alert_level === 'hot' ? 'alert-hot has-alert' :
+                       g.alert_level === 'warm' ? 'alert-warm has-alert' : '';
+    const awayLead = g.away_score > g.home_score ? 'leading' : '';
+    const homeLead = g.home_score > g.away_score ? 'leading' : '';
+
+    const sportBadge = `<span class="game-sport sport-${g.sport}">${g.sport.toUpperCase()}</span>`;
+    const period = g.sport === 'nba' ? 'Q' + g.period : 'P' + g.period;
+    const clockText = isLive ? `${period} ${g.clock}` : g.status;
+
+    // Prices
+    let pricesHtml = '';
+    if (g.away_price > 0) {
+      const awayFav = g.away_price >= g.home_price;
+      pricesHtml = `
+        <span class="price-tag ${awayFav ? 'fav' : 'dog'}">${g.away_team} ${(g.away_price*100).toFixed(0)}c</span>
+        <span class="price-tag ${!awayFav ? 'fav' : 'dog'}">${g.home_team} ${(g.home_price*100).toFixed(0)}c</span>
+      `;
+    } else {
+      pricesHtml = '<span style="color:#333">No Kalshi market found</span>';
+    }
+
+    // Whale flow bars
+    let whaleHtml = '';
+    const totalWhale = g.away_whale_flow + g.home_whale_flow;
+    if (totalWhale > 0) {
+      const awayPct = Math.round(g.away_whale_flow / totalWhale * 100);
+      const homePct = 100 - awayPct;
+      whaleHtml = `<span class="game-whale">
+        Whales: ${g.away_team} $${fmt(g.away_whale_flow)}
+        <span class="whale-bar yes" style="width:${Math.max(awayPct,2)}px"></span>
+        <span class="whale-bar no" style="width:${Math.max(homePct,2)}px"></span>
+        $${fmt(g.home_whale_flow)} ${g.home_team}
+      </span>`;
+    }
+
+    // Alert
+    let alertHtml = '';
+    if (g.alert) {
+      alertHtml = `<div class="game-alert ${g.alert_level}">${g.alert}</div>`;
+    }
+
+    html += `<div class="game-card ${alertClass}">
+      <div class="game-top">
+        <div class="game-score">
+          ${sportBadge}
+          <span class="away ${awayLead}">${g.away_team} ${g.away_score}</span>
+          <span class="at">@</span>
+          <span class="home ${homeLead}">${g.home_team} ${g.home_score}</span>
+        </div>
+        <span class="game-clock">${clockText}</span>
+      </div>
+      <div class="game-mid">
+        <div class="game-prices">${pricesHtml}</div>
+        ${whaleHtml}
+      </div>
+      ${alertHtml}
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+
+// Render portfolio stats bar
+function renderPortfolio(data) {
+  if (data.error) return;
+  document.getElementById('pVal').textContent = '$' + data.portfolio_value.toFixed(2);
+  document.getElementById('pCash').textContent = '$' + data.cash.toFixed(2);
+  // P&L is set by renderHistory (all-time, not just open)
+}
+
+// Find a live game matching a position ticker
+function findGame(ticker) {
+  // ticker like KXNBAGAME-26APR02MINDET-MIN
+  for (const g of liveGames) {
+    if (g.kalshi_ticker && ticker.startsWith(g.kalshi_ticker.split('-').slice(0,2).join('-'))) {
+      return g;
+    }
+  }
+  // Fuzzy match: check if any team abbrevs from games appear in the ticker
+  for (const g of liveGames) {
+    const away = g.away_team.toUpperCase().slice(0,3);
+    const home = g.home_team.toUpperCase().slice(0,3);
+    const tk = ticker.toUpperCase();
+    if (tk.includes(away) && tk.includes(home)) return g;
+    // Also try common abbreviations
+    if (tk.includes('MIN') && (g.away_team === 'Timberwolves' || g.home_team === 'Timberwolves')) return g;
+    if (tk.includes('DET') && (g.away_team === 'Pistons' || g.home_team === 'Pistons')) return g;
+    if (tk.includes('PHX') && (g.away_team === 'Suns' || g.home_team === 'Suns')) return g;
+    if (tk.includes('CHA') && (g.away_team === 'Hornets' || g.home_team === 'Hornets')) return g;
+    if (tk.includes('BOS') && (g.away_team === 'Bruins' || g.home_team === 'Bruins' || g.away_team === 'Celtics' || g.home_team === 'Celtics')) return g;
+    if (tk.includes('FLA') && (g.away_team === 'Panthers' || g.home_team === 'Panthers')) return g;
+  }
+  return null;
+}
+
+// Render positions tab
+function renderPositions(data) {
+  if (data.error) return;
+  const list = document.getElementById('positionsList');
+  if (!data.positions || data.positions.length === 0) {
+    list.innerHTML = '<div class="empty">No open positions</div>';
+    return;
+  }
+
+  let totalCost = 0, totalValue = 0;
+  let html = '';
+
+  data.positions.forEach(p => {
+    const sub = p.side === 'yes' ? p.yes_sub_title : p.no_sub_title;
+    const label = sub || p.title;
+    const pnlClass = p.pnl >= 0 ? 'green' : 'red';
+    const potentialWin = (p.contracts * 1.0 - p.cost).toFixed(2);
+    totalCost += p.cost;
+    totalValue += p.current_value;
+
+    // Find live game score
+    const game = findGame(p.ticker);
+    let scoreHtml = '';
+    if (game && game.status !== 'Scheduled') {
+      const qp = game.sport === 'nba' ? 'Q' : 'P';
+      const awayLead = game.away_score > game.home_score ? 'leading' : '';
+      const homeLead = game.home_score > game.away_score ? 'leading' : '';
+      const statusText = game.status === 'Halftime' ? 'Halftime' :
+                         game.status === 'End of Period' ? `End ${qp}${game.period}` :
+                         `${qp}${game.period} ${game.clock}`;
+      scoreHtml = `<div style="margin-bottom:10px;padding:12px;background:#08081a;border-radius:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="color:#555;font-size:10px;text-transform:uppercase;letter-spacing:1px">${game.sport.toUpperCase()}</span>
+          <span style="color:#4cff4c;font-size:11px;font-weight:700">${statusText}</span>
+        </div>
+        <div style="display:flex;justify-content:center;align-items:center;gap:24px">
+          <div style="text-align:center">
+            <div class="${awayLead}" style="font-size:32px;font-weight:700">${game.away_score}</div>
+            <div style="color:#888;font-size:11px;margin-top:2px">${game.away_team}</div>
+          </div>
+          <div style="color:#333;font-size:20px;font-weight:700">—</div>
+          <div style="text-align:center">
+            <div class="${homeLead}" style="font-size:32px;font-weight:700">${game.home_score}</div>
+            <div style="color:#888;font-size:11px;margin-top:2px">${game.home_team}</div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    html += `<div class="game-card">
+      ${scoreHtml}
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span class="side-badge ${p.side}">${p.side.toUpperCase()}</span>
+          <span style="color:#ccc;font-weight:700;margin-left:8px">${label}</span>
+        </div>
+        <span class="${pnlClass}" style="font-weight:700;font-size:16px">${fmtPnl(p.pnl)}</span>
+      </div>
+      <div style="display:flex;gap:20px;font-size:11px;color:#555;margin-top:8px">
+        <span>${p.contracts.toFixed(0)} contracts</span>
+        <span>Cost $${p.cost.toFixed(2)}</span>
+        <span>Value $${p.current_value.toFixed(2)}</span>
+        <span style="color:#4cff4c">Win +$${potentialWin}</span>
+      </div>
+    </div>`;
+  });
+
+  // Summary
+  const totalPnl = totalValue - totalCost;
+  const totalPnlClass = totalPnl >= 0 ? 'green' : 'red';
+  html += `<div style="padding:12px 14px;border-top:1px solid #333;display:flex;justify-content:space-around;font-size:12px">
+    <span style="color:#666">Invested <span style="color:#ccc;font-weight:700">$${totalCost.toFixed(2)}</span></span>
+    <span style="color:#666">Value <span style="color:#ccc;font-weight:700">$${totalValue.toFixed(2)}</span></span>
+    <span style="color:#666">P&L <span class="${totalPnlClass}" style="font-weight:700">${fmtPnl(totalPnl)}</span></span>
+  </div>`;
+
+  list.innerHTML = html;
+}
+
+// Render trade history
+function renderHistory(data) {
+  if (data.error) return;
+  const list = document.getElementById('historyList');
+  const stats = document.getElementById('historyStats');
+
+  const pnlClass = data.total_pnl >= 0 ? 'green' : 'red';
+  stats.innerHTML = `
+    <span style="color:#888">Record: <span style="color:#ccc;font-weight:700">${data.wins}W / ${data.losses}L</span></span>
+    <span style="color:#888">Win rate: <span style="color:#4cff4c;font-weight:700">${data.win_rate}%</span></span>
+    <span style="color:#888">Total P&L: <span class="${pnlClass}" style="font-weight:700">${fmtPnl(data.total_pnl)}</span></span>
+  `;
+
+  if (!data.trades || data.trades.length === 0) {
+    list.innerHTML = '<div class="empty">No trade history</div>';
+    return;
+  }
+
+  let html = '';
+  data.trades.forEach(t => {
+    const icon = t.status === 'open' ? '⏳' : t.pnl > 0 ? '✅' : '❌';
+    const pnlClass = t.pnl > 0 ? 'green' : t.pnl < 0 ? 'red' : '';
+    const label = t.sub_title || t.title;
+    const statusText = t.status === 'sold' ? 'SOLD' : t.status === 'settled' ? 'SETTLED' : 'OPEN';
+
+    html += `<div style="padding:8px 14px;border-bottom:1px solid #1a1a2a;display:flex;justify-content:space-between;align-items:center">
+      <div style="flex:1;min-width:0">
+        <span style="margin-right:6px">${icon}</span>
+        <span style="color:#ccc">${label}</span>
+        <span style="color:#444;font-size:10px;margin-left:8px">${t.date} · ${statusText} · ${t.contracts.toFixed(0)} contracts</span>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:12px">
+        <span class="${pnlClass}" style="font-weight:700">${t.status !== 'open' ? fmtPnl(t.pnl) : '--'}</span>
+      </div>
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+
+// Render whale feed
+function renderWhales(data) {
+  const whales = data.whales || [];
+  const list = document.getElementById('whaleList');
+  if (whales.length === 0) return;
+  const newIds = new Set(whales.map(w => w.trade_id));
+  let html = '';
+  whales.forEach((w, i) => {
+    html += `<div class="trade-row">
+      <span class="rank">${i+1}</span>
+      <span class="side-badge ${w.side}">${w.side.toUpperCase()}</span>
+      <span class="amount">$${fmt(w.amount_dollars)}</span>
+      <span class="market-title">${w.title}</span>
+    </div>`;
+  });
+  list.innerHTML = html;
+  prevWhaleIds = newIds;
+}
+
+// Fetch loop
+async function fetchAll() {
+  try {
+    const [gamesResp, swingResp, portfolioResp, historyResp] = await Promise.all([
+      fetch('/api/games'),
+      fetch('/api/swings'),
+      fetch('/api/portfolio'),
+      fetch('/api/history'),
+    ]);
+    if (gamesResp.ok) renderGames(await gamesResp.json());
+    if (swingResp.ok) {
+      const sData = await swingResp.json();
+      renderSwings(sData);
+      document.getElementById('pAlerts').textContent = sData.great_count + sData.good_count;
+    }
+    if (portfolioResp.ok) {
+      const pData = await portfolioResp.json();
+      renderPortfolio(pData);
+      renderPositions(pData);
+    }
+    if (historyResp.ok) {
+      const hData = await historyResp.json();
+      renderHistory(hData);
+      // Show total P&L (all-time, not just open positions)
+      const totalPnlEl = document.getElementById('pPnl');
+      totalPnlEl.textContent = fmtPnl(hData.total_pnl);
+      totalPnlEl.className = 'val ' + (hData.total_pnl >= 0 ? 'green' : 'red');
+    }
+
+    document.getElementById('statusText').textContent = 'Live';
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+  } catch (err) {
+    document.getElementById('statusText').textContent = 'Error: ' + err.message;
+  }
+}
+
+fetchAll();
+setInterval(fetchAll, POLL_MS);
+</script>
+</body>
+</html>
